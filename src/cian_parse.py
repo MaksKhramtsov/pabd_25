@@ -14,15 +14,15 @@ def main():
     Function docstring
     """
     t = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-    n_rooms = 1
-    csv_path = f'data/raw/{n_rooms}_{t}.csv'
+    n_rooms = (1, 2, 3, 'studio')
+    csv_path = f'data/raw/{t}_{'_'.join(map(str, n_rooms))}.csv'
     data = moscow_parser.get_flats(
         deal_type="sale",
-        rooms=(n_rooms,),
+        rooms=n_rooms,
         with_saving_csv=False,
         additional_settings={
             "start_page": 1,
-            "end_page": 2,
+            "end_page": 17,
             "object_type": "secondary"
         })
     df = pd.DataFrame(data)
