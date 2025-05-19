@@ -4,3 +4,5 @@ data
 
 service/flask.log
 notebooks/.ipynb_checkpoints
+
+lifecycle.log
