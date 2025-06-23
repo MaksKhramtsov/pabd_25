@@ -6,11 +6,12 @@ import joblib
 import numpy as np
 import cianparser
 import pandas as pd
+from catboost import CatBoostRegressor, Pool
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
 
 import logging
-
+from sklearn.model_selection import train_test_split
 logger = logging.getLogger('lifecycle')
 logger.setLevel(logging.INFO)
 
@@ -19,11 +20,11 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelnam
 logger.addHandler(file_handler)
 
 TRAIN_SIZE = 0.2
-MODEL_NAME = "./models/linear_regression_v5.pkl"
+MODEL_NAME = "./models/catboost_v1.pkl"
 
 raw_data_path = './data/raw'
 processed_data_path = './data/processed'
-X_cols = ['total_meters']  # только один признак - площадь
+X_cols = ['total_meters', 'floor', 'floors_count', 'rooms_count']
 y_cols = ['price']
 
 
@@ -63,7 +64,8 @@ def preprocess_data():
         main_dataframe = pd.concat([main_dataframe, df], axis=0)
 
     main_dataframe['url_id'] = main_dataframe['url'].map(lambda x: x.split('/')[-2])
-    data = main_dataframe[['url_id', 'total_meters', 'price']].set_index('url_id')
+    data = main_dataframe[['url_id', 'total_meters', 'price', 'floor', 'floors_count', 'rooms_count']].set_index(
+        'url_id')
     data = data[data['price'] < 100_000_000]
     data.sort_values('url_id', inplace=True)
     data.to_csv(f"{processed_data_path}/train_data.csv")
@@ -74,13 +76,44 @@ def train_model(split_size, model_name):
     logger.info('training model')
     data = pd.read_csv(f"{processed_data_path}/train_data.csv")
 
-    train_size = int((1 - split_size) * len(data))
-    train_data, test_data = data.iloc[:train_size], data.iloc[train_size:]
-    X_train, y_train = train_data[X_cols], train_data[y_cols]
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+    X_train, X_test, y_train, y_test = train_test_split(
+    data[X_cols],
+    data[y_cols],
+    test_size = split_size,
+    shuffle = False
+    )
+
+    train_pool = Pool(
+        data=X_train,
+        label=y_train,
+    )
+
+    test_pool = Pool(
+        data=X_test,
+        label=y_test,
+    )
+
+    params = {
+        'iterations': 1000,
+        'learning_rate': 0.1,
+        'depth': 6,
+        'loss_function': 'RMSE',
+        'eval_metric': 'RMSE',
+        'random_seed': 42,
+        'early_stopping_rounds': 50,
+        'verbose': 100
+    }
+
+    model = CatBoostRegressor(**params)
+    model.fit(
+        train_pool,
+        eval_set=test_pool,
+        use_best_model=True
+    )
 
     joblib.dump(model, model_name)
+    test_data = X_test.copy()
+    test_data['price'] = y_test
     test_data.to_csv(f"{processed_data_path}/test_data.csv")
 
 
@@ -92,19 +125,16 @@ def test_model(model_name):
     x_test, y_test = data[X_cols], data[y_cols]
 
     y_pred = model.predict(x_test)
+    mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     r2 = r2_score(y_test, y_pred)
     # Вывод метрик качества
     logger.info(f"Среднеквадратичная ошибка (MSE): {mse:.2f}")
+    logger.info(f"Средняя абсолютная ошибка (MAE): {mae:.2f}")
     logger.info(f"Корень из среднеквадратичной ошибки (RMSE): {rmse:.2f}")
     logger.info(f"Коэффициент детерминации R²: {r2:.6f}")
-    logger.info(f"Средняя ошибка предсказания: {np.mean(np.abs(y_test - y_pred)):.2f} рублей")
 
-    # Коэффициенты модели
-    logger.info(f"Коэффициент при площади: {model.coef_[0][0]:.2f}")
-    logger.info(f"Свободный член: {model.intercept_[0]:.2f}")
-    pass
 
 
 if __name__ == "__main__":
@@ -123,7 +153,7 @@ if __name__ == "__main__":
     model_path = args.model
     logger.info(f'launched with params: split={split}, model_path={model_path}')
 
-    parse_cian()
+    # parse_cian()
     preprocess_data()
     train_model(split, model_path)
     test_model(model_path)

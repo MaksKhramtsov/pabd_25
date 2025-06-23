@@ -6,3 +6,4 @@ service/flask.log
 notebooks/.ipynb_checkpoints
 
 lifecycle.log
+catboost_info
