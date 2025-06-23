@@ -1,3 +1,4 @@
+import pandas as pd
 from flask import Flask, render_template, request
 from logging.config import dictConfig
 from dataclasses import dataclass
@@ -38,7 +39,7 @@ class HouseInfo:
     floor: int = None
 
 # Сохранение модели
-model_path = '../models/linear_regression_model.pkl'
+model_path = '../models/catboost_v1.pkl'
 
 loaded_model = joblib.load(model_path)
 
@@ -52,9 +53,14 @@ def process_numbers():
     data = request.get_json()
     app.logger.info(f'Requst data: {data}')
     try:
-        area = float(data['area'])
-        predicted = loaded_model.predict([[area]])
-        print(predicted)
+        input_data = {
+        'total_meters': [float(data['area'])],
+        'floor': [int(data['floor'])],
+        'floors_count': [int(data['total_floors'])],
+        'rooms_count': [int(data['rooms'])],
+        }
+        input_df = pd.DataFrame(input_data)
+        predicted = loaded_model.predict(input_df)
         price = predicted[0]
         price = int(price)
     except ValueError:
