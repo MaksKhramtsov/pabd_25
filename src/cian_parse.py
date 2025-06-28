@@ -15,7 +15,7 @@ def main():
     """
     t = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     n_rooms = (1, 2, 3, 'studio')
-    csv_path = f'data/raw/{t}_{'_'.join(map(str, n_rooms))}.csv'
+    csv_path = f'data/raw/{t}_{"_".join(map(str, n_rooms))}.csv'
     data = moscow_parser.get_flats(
         deal_type="sale",
         rooms=n_rooms,

@@ -1,0 +1,15 @@
+cianparser
+pandas
+flask
+jupyter
+scikit-learn
+matplotlib
+black
+dvc
+boto3
+joblib
+dotenv
+flask_cors
+catboost
+gunicorn
+flask_httpauth
