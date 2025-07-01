@@ -4,7 +4,7 @@ import logging
 
 import joblib
 import pandas as pd
-from catboost import CatBoostRegressor, Pool
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger("lifecycle")
@@ -26,22 +26,21 @@ def train_model(split_size, model_name):
 
     X_train, X_test, y_train, y_test = train_test_split(data[X_cols], data[y_cols], test_size=split_size, shuffle=False)
 
-    train_pool = Pool(data=X_train, label=y_train)
-    test_pool = Pool(data=X_test, label=y_test)
-
-    params = {
-        "iterations": 1000,
-        "learning_rate": 0.1,
-        "depth": 6,
-        "loss_function": "RMSE",
-        "eval_metric": "RMSE",
-        "random_seed": 42,
-        "early_stopping_rounds": 50,
-        "verbose": 100,
-    }
-
-    model = CatBoostRegressor(**params)
-    model.fit(train_pool, eval_set=test_pool, use_best_model=True)
+        
+    model = XGBRegressor(
+        n_estimators=500,
+        learning_rate=0.01,
+        max_depth=5,
+        min_child_weight=5,
+        subsample=0.7,
+        colsample_bytree=0.7,
+        gamma=2,
+        reg_alpha=0.5,
+        reg_lambda=2,
+        random_state=42
+    )
+        
+    model.fit(X_train, y_train)
     joblib.dump(model, model_name)
 
     test_data = X_test.copy()
@@ -52,6 +51,6 @@ def train_model(split_size, model_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--split", type=float, default=0.2)
-    parser.add_argument("-m", "--model", default="./models/catboost_v1.pkl")
+    parser.add_argument("-m", "--model", default="./models/xgboost_v1.pkl")
     args = parser.parse_args()
     train_model(args.split, args.model)

@@ -44,6 +44,6 @@ def evaluate_model(model_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", required=True, help="Path to trained model")
+    parser.add_argument("-m", "--model", required=False, default="./models/xgboost_v1.pkl", help="Path to trained model")
     args = parser.parse_args()
     evaluate_model(args.model)
