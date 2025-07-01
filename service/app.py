@@ -10,7 +10,7 @@ from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from flask_httpauth import HTTPTokenAuth
 
-LOCAL_MODEL_PATH = "../models/catboost_v1.pkl"
+LOCAL_MODEL_PATH = "./models/catboost_v1.pkl"
 
 load_dotenv()
 
