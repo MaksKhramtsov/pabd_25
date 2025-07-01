@@ -9,3 +9,4 @@ lifecycle.log
 catboost_info
 
 .env
+dags/__pycache__
